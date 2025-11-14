@@ -45,34 +45,41 @@ def extract_objects_final(points, labels, background_radius=15.0, min_object_poi
     if np.sum(object_mask) < min_object_points:
         return np.array([]), np.array([]), vehicle_count, pedestrian_count
 
-    # 获取所有对象点的坐标
+    # # 获取所有对象点的坐标
+    # object_points = points[object_mask]
+    # object_labels = labels[object_mask]
+    #
+    # # 计算对象点的边界框
+    # min_bound = np.min(object_points, axis=0)
+    # max_bound = np.max(object_points, axis=0)
+    # center = (min_bound + max_bound) / 2
+    #
+    # # 扩展边界框以包含背景
+    # expanded_min = center - background_radius
+    # expanded_max = center + background_radius
+    #
+    # # 创建背景掩码（在扩展边界框内的非对象点）
+    # background_mask = ~object_mask
+    # for i in range(3):
+    #     background_mask &= (points[:, i] >= expanded_min[i])
+    #     background_mask &= (points[:, i] <= expanded_max[i])
+    #
+    # # 合并对象点和背景点
+    # all_points = np.vstack([object_points, points[background_mask]])
+    # all_labels = np.hstack([object_labels, labels[background_mask]])
+    #
+    # # 为点云创建颜色
+    # colors = create_colors_final(all_labels)
+    #
+    # return all_points, colors, vehicle_count, pedestrian_count
+    # 只保留对象点，去除背景
     object_points = points[object_mask]
     object_labels = labels[object_mask]
 
-    # 计算对象点的边界框
-    min_bound = np.min(object_points, axis=0)
-    max_bound = np.max(object_points, axis=0)
-    center = (min_bound + max_bound) / 2
-
-    # 扩展边界框以包含背景
-    expanded_min = center - background_radius
-    expanded_max = center + background_radius
-
-    # 创建背景掩码（在扩展边界框内的非对象点）
-    background_mask = ~object_mask
-    for i in range(3):
-        background_mask &= (points[:, i] >= expanded_min[i])
-        background_mask &= (points[:, i] <= expanded_max[i])
-
-    # 合并对象点和背景点
-    all_points = np.vstack([object_points, points[background_mask]])
-    all_labels = np.hstack([object_labels, labels[background_mask]])
-
     # 为点云创建颜色
-    colors = create_colors_final(all_labels)
+    colors = create_colors_final(object_labels)
 
-    return all_points, colors, vehicle_count, pedestrian_count
-
+    return object_points, colors, vehicle_count, pedestrian_count
 
 def create_colors_final(labels):
     """
@@ -89,8 +96,8 @@ def create_colors_final(labels):
             colors[i] = [1, 0, 0]
         elif label in pedestrian_labels:  # 行人 - 绿色
             colors[i] = [0, 1, 0]
-        else:  # 背景 - 灰色
-            colors[i] = [0.4, 0.4, 0.4]  # 中等灰色
+        # else:  # 背景 - 灰色
+        #     colors[i] = [0.4, 0.4, 0.4]  # 中等灰色
 
     return colors
 
