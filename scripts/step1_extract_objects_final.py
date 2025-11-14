@@ -299,3 +299,5 @@ if __name__ == "__main__":
         create_final_video_player()
     else:
         print("请指定操作: --process, --test <序列ID>, 或 --play")
+
+#该代码完成了我想要的行人与车辆提取，但是提取出来的点云数据有点大，但是效果不错，另外几个代码中的提取方法，车辆提取的不够完整，甚至没有提取出来，砸死使用debug_extracted_objects代码后，选择了一个合适的方法，提取了比较好的效果
