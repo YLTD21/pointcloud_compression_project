@@ -5,7 +5,12 @@ import open3d as o3d
 from tqdm import tqdm
 from pathlib import Path
 import sys
-
+import torch
+try:
+    from gpu_utils import GPUAccelerator, fast_voxel_downsample_gpu
+    HAS_GPU = True
+except ImportError:
+    HAS_GPU = False
 project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
@@ -23,27 +28,27 @@ def load_kitti_data(bin_path, label_path):
         return points, np.zeros(len(points), dtype=np.uint32)
 
 
-def extract_objects_final(points, labels, background_radius=15.0, min_object_points=5):
-    """
-    基于发现的标签映射提取对象
-    车辆: 1, 10, 51
-    行人: 255
-    """
-    # 基于发现的实际标签映射
-    vehicle_labels = [1, 10, 51]  # 车辆标签
-    pedestrian_labels = [255]  # 行人标签
-
-    vehicle_mask = np.isin(labels, vehicle_labels)
-    pedestrian_mask = np.isin(labels, pedestrian_labels)
-    object_mask = vehicle_mask | pedestrian_mask
-
-    # 统计对象数量
-    vehicle_count = np.sum(vehicle_mask)
-    pedestrian_count = np.sum(pedestrian_mask)
-
-    # 如果没有足够的对象点，返回空
-    if np.sum(object_mask) < min_object_points:
-        return np.array([]), np.array([]), vehicle_count, pedestrian_count
+def extract_objects_final(points, labels, background_radius=15.0, min_object_points=5,use_gpu=True):
+    # """
+    # 基于发现的标签映射提取对象
+    # 车辆: 1, 10, 51
+    # 行人: 255
+    # """
+    # # 基于发现的实际标签映射
+    # vehicle_labels = [1, 10, 51]  # 车辆标签
+    # pedestrian_labels = [255]  # 行人标签
+    #
+    # vehicle_mask = np.isin(labels, vehicle_labels)
+    # pedestrian_mask = np.isin(labels, pedestrian_labels)
+    # object_mask = vehicle_mask | pedestrian_mask
+    #
+    # # 统计对象数量
+    # vehicle_count = np.sum(vehicle_mask)
+    # pedestrian_count = np.sum(pedestrian_mask)
+    #
+    # # 如果没有足够的对象点，返回空
+    # if np.sum(object_mask) < min_object_points:
+    #     return np.array([]), np.array([]), vehicle_count, pedestrian_count
 
     # # 获取所有对象点的坐标
     # object_points = points[object_mask]
@@ -73,14 +78,51 @@ def extract_objects_final(points, labels, background_radius=15.0, min_object_poi
     #
     # return all_points, colors, vehicle_count, pedestrian_count
     # 只保留对象点，去除背景
-    object_points = points[object_mask]
-    object_labels = labels[object_mask]
+    # object_points = points[object_mask]
+    # object_labels = labels[object_mask]
+    #
+    # # 为点云创建颜色
+    # colors = create_colors_final(object_labels)
+    #
+    # return object_points, colors, vehicle_count, pedestrian_count
+    if use_gpu and HAS_GPU:
+        accelerator = GPUAccelerator()
 
-    # 为点云创建颜色
-    colors = create_colors_final(object_labels)
+        # 将数据转移到GPU
+        points_gpu = accelerator.to_gpu(points)
+        labels_gpu = accelerator.to_gpu(labels)
 
-    return object_points, colors, vehicle_count, pedestrian_count
+        # 在GPU上执行标签过滤
+        vehicle_labels = [1, 10, 51]
+        pedestrian_labels = [255]
 
+        if accelerator.device == 'cuda' and hasattr(torch, 'Tensor'):
+            vehicle_mask = torch.isin(labels_gpu, torch.tensor(vehicle_labels, device='cuda'))
+            pedestrian_mask = torch.isin(labels_gpu, torch.tensor(pedestrian_labels, device='cuda'))
+            object_mask = vehicle_mask | pedestrian_mask
+        else:
+            # CPU回退
+            vehicle_mask = np.isin(labels, vehicle_labels)
+            pedestrian_mask = np.isin(labels, pedestrian_labels)
+            object_mask = vehicle_mask | pedestrian_mask
+
+        object_mask_cpu = accelerator.to_cpu(object_mask)
+
+        vehicle_count = np.sum(accelerator.to_cpu(vehicle_mask))
+        pedestrian_count = np.sum(accelerator.to_cpu(pedestrian_mask))
+
+        if np.sum(object_mask_cpu) < min_object_points:
+            return np.array([]), np.array([]), vehicle_count, pedestrian_count
+
+        object_points = points[object_mask_cpu]
+        object_labels = labels[object_mask_cpu]
+        colors = create_colors_final(object_labels)
+
+        return object_points, colors, vehicle_count, pedestrian_count
+
+    else:
+        # 使用原来的CPU版本
+        return extract_objects_final(points, labels, background_radius, min_object_points)
 def create_colors_final(labels):
     """
     基于最终确定的标签创建颜色
