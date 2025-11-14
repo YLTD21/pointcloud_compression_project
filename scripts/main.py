@@ -53,13 +53,12 @@ def get_user_choice():
             print("无效输入，请重新选择")
 
 
-def run_step1():
-    """执行步骤1：提取行人和车辆数据（增强版）"""
-    print("\n>>> 开始执行步骤1：提取行人和车辆数据（增强版）")
-
+def run_step1(use_gpu=True):
+    """执行步骤1：提取行人和车辆数据（GPU加速）"""
+    print(f"\n>>> 开始执行步骤1：提取行人和车辆数据（{'GPU加速' if use_gpu else 'CPU'}）")
     try:
         from step1_extract_objects_final import process_semantic_kitti_data_final
-        process_semantic_kitti_data_final()
+        process_semantic_kitti_data_final(use_gpu=use_gpu)
         print("✓ 步骤1完成：行人和车辆数据提取成功")
         return True
     except Exception as e:
@@ -69,24 +68,12 @@ def run_step1():
         return False
 
 
-def run_step2():
-    """执行步骤2：提取高价值特征点"""
-    print("\n>>> 开始执行步骤2：提取高价值特征点")
-
-    # 检查步骤1的输出是否存在
-    processed_dir = project_root / "data" / "processed_dataset_final"  # 更新路径
-    pcd_files = list(processed_dir.rglob("*.pcd"))
-
-    if not processed_dir.exists() or len(pcd_files) == 0:
-        print("错误：未找到处理后的数据，请先执行步骤1")
-        print(f"请检查目录: {processed_dir}")
-        return False
-
-    print(f"找到 {len(pcd_files)} 个处理后的文件")
-
+def run_step2(use_gpu=True):
+    """执行步骤2：提取高价值特征点（GPU加速）"""
+    print(f"\n>>> 开始执行步骤2：提取高价值特征点（{'GPU加速' if use_gpu else 'CPU'}）")
     try:
-        from step2_extract_high_value_features import process_high_value_extraction
-        process_high_value_extraction()
+        from step2_fast_high_value import process_fast_high_value_extraction
+        process_fast_high_value_extraction(use_gpu=use_gpu)
         print("✓ 步骤2完成：高价值特征点提取成功")
         return True
     except Exception as e:
@@ -94,6 +81,7 @@ def run_step2():
         import traceback
         traceback.print_exc()
         return False
+
 
 
 def run_step3():
@@ -123,13 +111,13 @@ def run_step3():
         return False
 
 
-def run_full_pipeline():
-    """执行完整流程"""
-    print("\n>>> 开始执行完整处理流程")
+def run_full_pipeline(use_gpu=True):
+    """执行完整流程（GPU加速）"""
+    print(f"\n>>> 开始执行完整处理流程（{'GPU加速' if use_gpu else 'CPU'}）")
 
     steps = [
-        ("步骤1: 提取行人和车辆（增强版）", run_step1),
-        ("步骤2: 提取高价值特征", run_step2),
+        ("步骤1: 提取行人和车辆", lambda: run_step1(use_gpu)),
+        ("步骤2: 提取高价值特征", lambda: run_step2(use_gpu)),
         ("步骤3: 点云压缩", run_step3)
     ]
 
