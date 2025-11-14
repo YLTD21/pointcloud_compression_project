@@ -22,9 +22,20 @@ def print_menu():
     print("6. 查看处理结果统计")
     print("7. 检查数据目录结构")
     print("8. 可视化点云数据")
+    print("9. 可视化高价值点云（视频）")  # 新增选项
     print("0. 退出")
     print("-" * 50)
 
+# 添加对应的处理函数
+def run_high_value_visualization():
+    """运行高价值点云视频可视化"""
+    print("\n>>> 启动高价值点云视频可视化")
+    try:
+        from high_value_video_player import main as high_value_main
+        high_value_main()
+    except Exception as e:
+        print(f"高价值点云可视化启动失败: {e}")
+        print("请确保已安装所有依赖")
 
 def get_user_choice():
     """获取用户选择"""
@@ -289,7 +300,8 @@ def main():
             check_data_structure()
         elif choice == 8:
             run_visualization()
-
+        elif choice == 9:  # 新增选项
+            run_high_value_visualization()
         # 操作完成后暂停
         if choice != 0:
             input("\n按Enter键返回主菜单...")
