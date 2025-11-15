@@ -41,11 +41,11 @@ def get_user_choice():
     """获取用户选择"""
     while True:
         try:
-            choice = input("请选择要执行的操作 (0-8): ").strip()
-            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
+            choice = input("请选择要执行的操作 (0-9): ").strip()
+            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8','9']:
                 return int(choice)
             else:
-                print("无效选择，请输入 0-8 之间的数字")
+                print("无效选择，请输入 0-9 之间的数字")
         except KeyboardInterrupt:
             print("\n程序被用户中断")
             sys.exit(0)
