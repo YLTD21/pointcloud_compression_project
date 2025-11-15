@@ -22,23 +22,62 @@ def load_kitti_pointcloud(bin_file_path):
 
 def load_extracted_pointcloud(pcd_file_path):
     """
-    加载提取的点云文件（增强版）
+    加载提取的点云文件（增强版）- 修复版本
     返回: points (N,3), colors (N,3), labels (N,)
     """
-    pcd = o3d.io.read_point_cloud(str(pcd_file_path))
-    points = np.asarray(pcd.points)
-    colors = np.asarray(pcd.colors)
+    try:
+        pcd = o3d.io.read_point_cloud(str(pcd_file_path))
 
-    # 从颜色推断标签（基于我们的颜色映射）
-    labels = np.zeros(len(points), dtype=np.uint8)  # 0:背景
-    if len(colors) > 0:
-        # 红色: 车辆 (1), 绿色: 行人 (2)
-        red_mask = np.all(np.isclose(colors, [1, 0, 0], atol=0.1), axis=1)
-        green_mask = np.all(np.isclose(colors, [0, 1, 0], atol=0.1), axis=1)
-        labels[red_mask] = 1  # 车辆
-        labels[green_mask] = 2  # 行人
+        if pcd is None:
+            print(f"  警告: 无法读取点云文件 {pcd_file_path}")
+            return np.array([]), np.array([]), np.array([])
 
-    return points, colors, labels
+        points = np.asarray(pcd.points)
+
+        if len(points) == 0:
+            print(f"  警告: 点云文件 {pcd_file_path} 为空")
+            return np.array([]), np.array([]), np.array([])
+
+        colors = np.asarray(pcd.colors) if pcd.has_colors() else None
+
+        # 从颜色推断标签（基于我们的颜色映射）
+        labels = np.zeros(len(points), dtype=np.uint8)  # 0:背景
+
+        if colors is not None and len(colors) > 0:
+            try:
+                # 红色: 车辆 (1), 绿色: 行人 (2)
+                red_mask = np.all(np.isclose(colors, [1, 0, 0], atol=0.1), axis=1)
+                green_mask = np.all(np.isclose(colors, [0, 1, 0], atol=0.1), axis=1)
+                labels[red_mask] = 1  # 车辆
+                labels[green_mask] = 2  # 行人
+            except Exception as e:
+                print(f"  颜色标签推断失败: {e}")
+                labels = np.zeros(len(points), dtype=np.uint8)
+
+        return points, colors, labels
+
+    except Exception as e:
+        print(f"  加载点云文件 {pcd_file_path} 失败: {e}")
+        return np.array([]), np.array([]), np.array([])
+# def load_extracted_pointcloud(pcd_file_path):
+#     """
+#     加载提取的点云文件（增强版）
+#     返回: points (N,3), colors (N,3), labels (N,)
+#     """
+#     pcd = o3d.io.read_point_cloud(str(pcd_file_path))
+#     points = np.asarray(pcd.points)
+#     colors = np.asarray(pcd.colors)
+#
+#     # 从颜色推断标签（基于我们的颜色映射）
+#     labels = np.zeros(len(points), dtype=np.uint8)  # 0:背景
+#     if len(colors) > 0:
+#         # 红色: 车辆 (1), 绿色: 行人 (2)
+#         red_mask = np.all(np.isclose(colors, [1, 0, 0], atol=0.1), axis=1)
+#         green_mask = np.all(np.isclose(colors, [0, 1, 0], atol=0.1), axis=1)
+#         labels[red_mask] = 1  # 车辆
+#         labels[green_mask] = 2  # 行人
+#
+#     return points, colors, labels
 
 
 def save_pointcloud(points, filename, colors=None, labels=None):
