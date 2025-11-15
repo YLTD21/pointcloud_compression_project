@@ -20,7 +20,7 @@ class HighValueVideoPlayer:
 
     def load_high_value_sequence(self, sequence_id="00"):
         """加载高价值点云序列"""
-        high_value_dir = project_root / "data" / "high_value_dataset_fast" / f"seq_{sequence_id}"
+        high_value_dir = project_root / "data" / "high_value_dataset" / f"seq_{sequence_id}"
 
         if not high_value_dir.exists():
             print(f"高价值序列 {sequence_id} 不存在")
